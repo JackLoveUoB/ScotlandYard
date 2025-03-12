@@ -70,12 +70,25 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 
 		@Override public GameSetup getSetup() {return setup;}
-		@Override public ImmutableSet<Piece> getPlayers() {return null;}
+		@Override public ImmutableSet<Piece> getPlayers() {
+			Set<Piece> players = new HashSet<>();
+			players.add(mrX.piece());
+			for (Player detective : detectives) {
+				players.add(detective.piece());
+			}
+			return ImmutableSet.copyOf(players);
+		}
 		@Override public GameState advance(Move move) {
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
 			return move.accept(new Move.Visitor<GameState>() {
-				@Override public visit(SingleMove singleMove) {return null;}
-				@Override public visit(DoubleMove doubleMove) {return null;}
+				@Override public GameState visit(SingleMove singleMove) {
+					if (mrX.piece().isMrX()) {
+						//Player mrXIsBack = mrX.move(singleMove.destination, singleMove.ticket);
+						//ImmutableList<LogEntry> logIsBack =
+					}
+					return null;
+				}
+				@Override public GameState visit(DoubleMove doubleMove) {return null;}
 			});
 			//return null;
 		}
@@ -89,6 +102,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override public Optional<Board.TicketBoard> getPlayerTickets(Piece piece) {
 			return Optional.empty();}
 		@Override public ImmutableList<LogEntry> getMrXTravelLog() {return log;}
+		private boolean shouldReveal(SingleMove move) {
+			int roundNumber = log.size();
+			//return setup.revealRounds().contains(roundNumber);
+			return false;
+		}
 	}
 
 	@Nonnull @Override public GameState build(
