@@ -9,6 +9,7 @@ import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 
 /**
  * cw-model
@@ -64,7 +65,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
 			return null;
 		}
-		@Override public ImmutableSet<Move> getAvailableMoves() {return moves;}
+		@Override public ImmutableSet<Move> getAvailableMoves() {
+			Set<SingleMove> singleMoves = makeSingleMoves(setup, detectives, mrX, mrX.location());
+
+			return moves;
+		}
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player detectivey : detectives) {
@@ -103,8 +108,20 @@ public final class MyGameStateFactory implements Factory<GameState> {
                 }
 			}
 
-			if (empty) singleMoves.add(new SingleMove(player.piece(), source, ))
+			if (empty) {
+				for (ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of())) {
+					if (player.tickets().getOrDefault(t, 0) > 0) {
+						singleMoves.add(new SingleMove(player.piece(), destination, t.requiredTicket(), destination));
+					}
+				}
+
+				if (player.has(Ticket.SECRET)) {
+					singleMoves.add(new SingleMove(player.piece(), destination, Ticket.SECRET, destination));
+				}
+			}
 		}
+
+		return singleMoves;
 	}
 
 }
