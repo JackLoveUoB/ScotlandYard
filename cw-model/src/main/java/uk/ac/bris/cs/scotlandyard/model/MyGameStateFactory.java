@@ -62,7 +62,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override public ImmutableSet<Piece> getPlayers() {return null;}
 		@Override public GameState advance(Move move) {
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
-			return null;
+			return move.accept(new Move.Visitor<GameState>() {
+				@Override public visit(SingleMove singleMove) {return null;}
+				@Override public visit(DoubleMove doubleMove) {return null;}
+			});
+			//return null;
 		}
 		@Override public ImmutableSet<Move> getAvailableMoves() {return moves;}
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
