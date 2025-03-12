@@ -67,8 +67,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override public ImmutableSet<Move> getAvailableMoves() {return moves;}
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
-			if (!detectives.contains(detective)) return Optional.empty();
-			return Optional.of(detectives.indexOf(detective));} //this was auto completed by the ide no idea if it works
+			for (Player detectivey : detectives) {
+				if (detectivey.piece().equals(detective)) return Optional.of(detectivey.location());
+			} //go through all detectives in list to see if detective exists. if does not exits then empty
+			return Optional.empty();} //this was auto completed by the ide no idea if it works
 		@Override public Optional<Board.TicketBoard> getPlayerTickets(Piece piece) {
 			return Optional.empty();}
 		@Override public ImmutableList<LogEntry> getMrXTravelLog() {return log;}
