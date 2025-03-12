@@ -88,9 +88,25 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		// needs to have 7 inputs since 7 values are returned into a test from mygamestate
 		// no idea why this order tho
 		return new MyGameState(setup, remaining, log, mrX, detectives, moves, winner);
-		}
-
-
 	}
+
+	private static Set<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source) {
+		Set<SingleMove> singleMoves = new HashSet<>();
+
+		for (int destination : setup.graph.adjacentNodes(source)) {
+			boolean empty = true;
+
+			for (Player detective : detectives) {
+                if (detective.location() == destination) {
+                    empty = false;
+                    break;
+                }
+			}
+
+			if (empty) singleMoves.add(new SingleMove(player.piece(), source, ))
+		}
+	}
+
+}
 
 
