@@ -54,8 +54,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
-			this.moves = moves;
 			this.winner = winner;
+
+			Set<Move> moveSet = new HashSet<>();
+
+			for (Player detective : detectives) {
+				moveSet.addAll(makeSingleMoves(setup, detectives, detective, detective.location()));
+			}
+
+			moveSet.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+
+			this.moves = ImmutableSet.copyOf(moveSet);
 		}
 
 
@@ -65,11 +74,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
 			return null;
 		}
-		@Override public ImmutableSet<Move> getAvailableMoves() {
-			Set<SingleMove> singleMoves = makeSingleMoves(setup, detectives, mrX, mrX.location());
-
-			return moves;
-		}
+		@Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player detectivey : detectives) {
@@ -110,7 +115,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			if (empty) {
 				for (ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of())) {
-					if (player.tickets().getOrDefault(t, 0) > 0) {
+					if (player.has(t.requiredTicket())) {
 						singleMoves.add(new SingleMove(player.piece(), destination, t.requiredTicket(), destination));
 					}
 				}
