@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.model;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -79,7 +80,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 		@Override public GameState advance(Move move) {
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
-			return null;
+			return move.accept(new Move.Visitor<GameState>() {
+				@Override public GameState visit(SingleMove singleMove) {
+					if (mrX.piece().isMrX()) {
+						Map<Ticket, Integer> newMrXTickets = new HashMap<>(mrX.tickets());
+						Ticket oldTicket = singleMove.ticket;
+						int numby = newMrXTickets.getOrDefault(oldTicket, 0);
+						if (numby <= 0) throw new IllegalStateException("no ticket found");
+						newMrXTickets.put(oldTicket, numby - 1);
+						Player mrXIsBack = new Player(mrX.piece(), (ImmutableMap<Ticket, Integer>) newMrXTickets, singleMove.destination);
+						ImmutableSet<Piece> newRemaining = detectives.stream()
+								.map(Player::piece)
+								.collect(ImmutableSet.toImmutableSet());
+						//ImmutableSet<Move> newMoves =
+					}
+					return null;
+				}
+				@Override public GameState visit(DoubleMove doubleMove) {
+					return null;
+				}
+			});
 		}
 		@Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
