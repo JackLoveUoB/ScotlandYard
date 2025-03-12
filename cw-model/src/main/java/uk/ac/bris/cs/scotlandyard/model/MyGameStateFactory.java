@@ -9,6 +9,7 @@ import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.Move.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 
 /**
  * cw-model
@@ -53,8 +54,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
-			this.moves = moves;
 			this.winner = winner;
+
+			Set<Move> moveSet = new HashSet<>();
+
+//			for (Player detective : detectives) {
+//				moveSet.addAll(makeSingleMoves(setup, detectives, detective, detective.location()));
+//			}
+
+			moveSet.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+			moveSet.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+
+			this.moves = ImmutableSet.copyOf(moveSet);
 		}
 
 
@@ -68,7 +79,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			});
 			//return null;
 		}
-		@Override public ImmutableSet<Move> getAvailableMoves() {return moves;}
+		@Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player detectivey : detectives) {
@@ -107,10 +118,81 @@ public final class MyGameStateFactory implements Factory<GameState> {
                 }
 			}
 
-			if (empty) singleMoves.add(new SingleMove(player.piece(), source, ))
+			if (empty) {
+				for (ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of())) {
+					if (player.has(t.requiredTicket())) {
+						singleMoves.add(new SingleMove(player.piece(), source, t.requiredTicket(), destination));
+					}
+				}
+
+				if (player.has(Ticket.SECRET)) {
+					singleMoves.add(new SingleMove(player.piece(), source, Ticket.SECRET, destination));
+				}
+			}
 		}
+
+		return singleMoves;
 	}
 
+	private static Set<DoubleMove> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player mrX, int source) {
+		Set<DoubleMove> doubleMoves = new HashSet<>();
+
+		if (!mrX.has(Ticket.DOUBLE) || !(mrX.has(Ticket.TAXI) || mrX.has(Ticket.BUS) || mrX.has(Ticket.UNDERGROUND) || mrX.has(Ticket.SECRET)) || setup.moves.size() <= 1) return doubleMoves;
+
+		for (int destination1 : setup.graph.adjacentNodes(source)) {
+			boolean empty1 = true;
+
+			for (Player detective : detectives) {
+				if (detective.location() == destination1) {
+					empty1 = false;
+					break;
+				}
+			}
+
+			if (empty1) {
+				for (int destination2 : setup.graph.adjacentNodes(destination1)) {
+					boolean empty2 = true;
+
+					for (Player detective : detectives) {
+						if (detective.location() == destination2) {
+							empty2 = false;
+							break;
+						}
+					}
+
+					if (empty2) {
+						for (ScotlandYard.Transport t1 : setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of())) {
+							for (ScotlandYard.Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
+								if (t1.requiredTicket().equals(t2.requiredTicket()) && !mrX.hasAtLeast(t1.requiredTicket(), 2)) continue;
+
+								if (mrX.has(t1.requiredTicket()) && mrX.has(t2.requiredTicket())) {
+									doubleMoves.add(new DoubleMove(mrX.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2));
+								}
+							}
+
+							if (mrX.has(Ticket.SECRET)) {
+								doubleMoves.add(new DoubleMove(mrX.piece(), source, t1.requiredTicket(), destination1, Ticket.SECRET, destination2));
+							}
+						}
+
+						if (mrX.has(Ticket.SECRET)) {
+							for (ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
+								if (mrX.has(t.requiredTicket())) {
+									doubleMoves.add(new DoubleMove(mrX.piece(), source, Ticket.SECRET, destination1, t.requiredTicket(), destination2));
+								}
+							}
+
+							if (mrX.hasAtLeast(Ticket.SECRET, 2)) {
+								doubleMoves.add(new DoubleMove(mrX.piece(), source, Ticket.SECRET, destination1, Ticket.SECRET, destination2));
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return doubleMoves;
+	}
 }
 
 
