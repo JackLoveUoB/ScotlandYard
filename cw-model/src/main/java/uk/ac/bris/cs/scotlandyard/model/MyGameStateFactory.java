@@ -57,20 +57,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			Set<Move> moveSet = new HashSet<>();
 
-			System.out.println("remaining " + remaining);
 			if (remaining.isEmpty()) {
 				moveSet.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
 				moveSet.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
 			}
 
-			for (Piece piece : remaining.asList()) {
-				for (Player detective : detectives) {
-					if (detective.piece().equals(piece)) moveSet.addAll(makeSingleMoves(setup, detectives, detective, detective.location()));
-				}
+			for (Player detective : detectives) {
+				if (remaining.contains(detective.piece())) moveSet.addAll(makeSingleMoves(setup, detectives, detective, detective.location()));
 			}
 
 			this.moves = ImmutableSet.copyOf(moveSet);
-			System.out.println("moves " + this.moves);
 		}
 
 
@@ -86,14 +82,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Override public GameState advance(Move move) {
-			System.out.println("advance " + move);
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
 
 			return move.accept(new Move.Visitor<GameState>() {
 				@Override public GameState visit(SingleMove singleMove) {
 					if (move.commencedBy().equals(mrX.piece())) {
 						List<LogEntry> newLogList = log.stream().collect(Collectors.toList());
-						if (setup.moves.get(0)) newLogList.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
+						if (setup.moves.get(log.size())) newLogList.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
 						else newLogList.add(LogEntry.hidden(singleMove.ticket));
 						ImmutableList<LogEntry> newLog = ImmutableList.copyOf(newLogList);
 
@@ -114,7 +109,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							.findFirst()
 							.orElse(null);
 					Player detectiveNewLocation = detective.at(singleMove.destination);
-					Player detectiveUseTicket = detectiveNewLocation.at(singleMove.destination);
+					Player detectiveUseTicket = detectiveNewLocation.use(singleMove.ticket);
 					Player mrXGiveTicket = mrX.give(singleMove.ticket);
 					List<Player> newDetectives = new ArrayList<>(detectives);
 					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
@@ -127,16 +122,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
+					System.out.println(setup.moves);
 					List<LogEntry> newLogList = log.stream().collect(Collectors.toList());
-					if (setup.moves.get(0)) newLogList.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
+					if (setup.moves.get(log.size())) newLogList.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
 					else newLogList.add(LogEntry.hidden(doubleMove.ticket1));
-					if (setup.moves.get(1)) newLogList.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
+					if (setup.moves.get(log.size() + 1)) newLogList.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
 					else newLogList.add(LogEntry.hidden(doubleMove.ticket2));
 					ImmutableList<LogEntry> newLog = ImmutableList.copyOf(newLogList);
 
-					Player mrXUseTicket1 = mrX.use(doubleMove.ticket1);
-					Player mrXUseTicket2 = mrXUseTicket1.use(doubleMove.ticket2);
-					Player mrXNewLocation = mrXUseTicket2.at(doubleMove.destination2);
+					Player mrXUseTickets = mrX.use(List.of(doubleMove.ticket1, doubleMove.ticket2, Ticket.DOUBLE));
+					Player mrXNewLocation = mrXUseTickets.at(doubleMove.destination2);
 
 					Set<Piece> remainingSet = new HashSet<>();
 					for (Player detective : detectives) {
@@ -153,14 +148,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override public ImmutableSet<Piece> getWinner() {return winner;}
 
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
-			for (Player detectivey : detectives) {
-				if (detectivey.piece().equals(detective)) return Optional.of(detectivey.location());
-			} //go through all detectives in list to see if detective exists. if does not exits then empty
-			return Optional.empty();} //this was auto completed by the ide no idea if it works
+			for (Player detective_ : detectives) {
+				if (detective_.piece() == detective) return Optional.of(detective_.location());
+			}
+
+			return Optional.empty();
+		}
 
 		@Override public Optional<Board.TicketBoard> getPlayerTickets(Piece piece) {
 			for (Player detective : detectives) {
-				if (detective.piece() == piece) {
+				if (detective.piece().equals(piece)) {
 					return Optional.of(new TicketBoard() {
 						@Override
 						public int getCount(@Nonnull Ticket ticket) {
@@ -169,7 +166,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					});
 				}
 
-				if (mrX.piece() == piece) {
+				if (mrX.piece().equals(piece)) {
 					return Optional.of(new Board.TicketBoard() {
 						@Override
 						public int getCount(@Nonnull Ticket ticket) {
@@ -177,13 +174,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						}
 					});
 				}
-
-				return Optional.empty();
 			}
 
 			return Optional.empty();
 		}
-		@Override public ImmutableList<LogEntry> getMrXTravelLog() {return log;}
+		@Override public ImmutableList<LogEntry> getMrXTravelLog() { return log; }
 	}
 
 	@Nonnull @Override public GameState build(
