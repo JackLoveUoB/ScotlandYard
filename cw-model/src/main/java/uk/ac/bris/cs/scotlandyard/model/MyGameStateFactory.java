@@ -53,7 +53,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
-			this.winner = winner;
 
 			Set<Move> moveSet = new HashSet<>();
 
@@ -67,8 +66,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 
 			this.moves = ImmutableSet.copyOf(moveSet);
+
+			boolean noTickets = false;
+			for (Player detective : detectives) {
+				if (detective.tickets().isEmpty()) {
+					noTickets = true;
+					break;
+				}
+			}
+
+			if (detectiveLocations.contains(mrX.location()) || log.size() == 24 || noTickets) {
+				this.winner = detectivesWin();
+				this.moves = ImmutableSet.of();
+			}
+			else if (remaining.isEmpty() && this.moves.isEmpty()) this.winner = detectivesWin();
+			else this.winner = winner;
 		}
 
+		private ImmutableSet<Piece> detectivesWin() {
+			return ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
+		}
 
 		@Override public GameSetup getSetup() {return setup;}
 		@Override public ImmutableSet<Piece> getPlayers() {
@@ -87,21 +104,19 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return move.accept(new Move.Visitor<GameState>() {
 				@Override public GameState visit(SingleMove singleMove) {
 					if (move.commencedBy().equals(mrX.piece())) {
-						List<LogEntry> newLogList = log.stream().collect(Collectors.toList());
-						if (setup.moves.get(log.size())) newLogList.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
-						else newLogList.add(LogEntry.hidden(singleMove.ticket));
-						ImmutableList<LogEntry> newLog = ImmutableList.copyOf(newLogList);
+						List<LogEntry> newLog = log.stream().collect(Collectors.toList());
+						if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
+						else newLog.add(LogEntry.hidden(singleMove.ticket));
 
 						Player mrXUseTicket = mrX.use(singleMove.ticket);
 						Player mrXNewLocation = mrXUseTicket.at(singleMove.destination);
 
-						Set<Piece> remainingSet = new HashSet<>();
+						Set<Piece> newRemaining = new HashSet<>();
 						for (Player detective : detectives) {
-							remainingSet.add(detective.piece());
+							newRemaining.add(detective.piece());
 						}
-						ImmutableSet<Piece> newRemaining = ImmutableSet.copyOf(remainingSet);
 
-						return new MyGameState(setup, newRemaining, newLog, mrXNewLocation, detectives, moves, winner);
+						return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), mrXNewLocation, detectives, moves, winner);
 					}
 
 					Player detective = detectives.stream()
@@ -114,38 +129,35 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					List<Player> newDetectives = new ArrayList<>(detectives);
 					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
 
-					Set<Piece> remainingSet = remaining.stream().collect(Collectors.toSet());
-					remainingSet.remove(move.commencedBy());
-					ImmutableSet<Piece> newRemaining = ImmutableSet.copyOf(remainingSet);
+					Set<Piece> newRemaining = remaining.stream().collect(Collectors.toSet());
+					newRemaining.remove(move.commencedBy());
 
-					return new MyGameState(setup, newRemaining, log, mrXGiveTicket, newDetectives, moves, winner);
+					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, mrXGiveTicket, newDetectives, moves, winner);
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
 					System.out.println(setup.moves);
-					List<LogEntry> newLogList = log.stream().collect(Collectors.toList());
-					if (setup.moves.get(log.size())) newLogList.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
-					else newLogList.add(LogEntry.hidden(doubleMove.ticket1));
-					if (setup.moves.get(log.size() + 1)) newLogList.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
-					else newLogList.add(LogEntry.hidden(doubleMove.ticket2));
-					ImmutableList<LogEntry> newLog = ImmutableList.copyOf(newLogList);
+					List<LogEntry> newLog = log.stream().collect(Collectors.toList());
+					if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
+					else newLog.add(LogEntry.hidden(doubleMove.ticket1));
+					if (setup.moves.get(log.size() + 1)) newLog.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
+					else newLog.add(LogEntry.hidden(doubleMove.ticket2));
 
 					Player mrXUseTickets = mrX.use(List.of(doubleMove.ticket1, doubleMove.ticket2, Ticket.DOUBLE));
 					Player mrXNewLocation = mrXUseTickets.at(doubleMove.destination2);
 
-					Set<Piece> remainingSet = new HashSet<>();
+					Set<Piece> newRemaining = new HashSet<>();
 					for (Player detective : detectives) {
-						remainingSet.add(detective.piece());
+						newRemaining.add(detective.piece());
 					}
-					ImmutableSet<Piece> newRemaining = ImmutableSet.copyOf(remainingSet);
 
-					return new MyGameState(setup, newRemaining, newLog, mrXNewLocation, detectives, moves, winner);
+					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), mrXNewLocation, detectives, moves, winner);
 				}
 			});
 		}
 
 		@Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
-		@Override public ImmutableSet<Piece> getWinner() {return winner;}
+		@Override public ImmutableSet<Piece> getWinner() { return winner; }
 
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
 			for (Player detective_ : detectives) {
