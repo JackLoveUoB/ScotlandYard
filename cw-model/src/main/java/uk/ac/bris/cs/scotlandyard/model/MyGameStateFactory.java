@@ -14,6 +14,8 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Transport;
 
+import static uk.ac.bris.cs.scotlandyard.model.Piece.Detective.BLUE;
+
 // builds new game state off of factory
 public final class MyGameStateFactory implements Factory<GameState> {
 	//implements game state
@@ -67,24 +69,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
-			boolean noTickets = false;
-			for (Player detective : detectives) {
-				if (detective.tickets().isEmpty()) {
-					noTickets = true;
-					break;
-				}
-			}
+			System.out.println(this.moves);
 
-			if (detectiveLocations.contains(mrX.location()) || log.size() == 24 || noTickets) {
-				this.winner = detectivesWin();
+			if ((!remaining.isEmpty() && this.moves.isEmpty()) || detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0))) {
+				this.winner = ImmutableSet.of(mrX.piece());
 				this.moves = ImmutableSet.of();
-			}
-			else if (remaining.isEmpty() && this.moves.isEmpty()) this.winner = detectivesWin();
-			else this.winner = winner;
-		}
+			} else if (detectiveLocations.contains(mrX.location()) || (remaining.isEmpty() && (this.moves.isEmpty() || log.size() >= setup.moves.size()))) {
+				this.winner = ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
+				this.moves = ImmutableSet.of();
+			} else this.winner = winner;
 
-		private ImmutableSet<Piece> detectivesWin() {
-			return ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
+			System.out.println(this.winner + " " + this.moves);
 		}
 
 		@Override public GameSetup getSetup() {return setup;}
@@ -113,7 +108,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 						Set<Piece> newRemaining = new HashSet<>();
 						for (Player detective : detectives) {
-							newRemaining.add(detective.piece());
+							if (detective.tickets().entrySet().stream().anyMatch(entry -> entry.getValue() != 0)) newRemaining.add(detective.piece());
 						}
 
 						return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), mrXNewLocation, detectives, moves, winner);
@@ -148,7 +143,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 					Set<Piece> newRemaining = new HashSet<>();
 					for (Player detective : detectives) {
-						newRemaining.add(detective.piece());
+						if (detective.tickets().entrySet().stream().anyMatch(entry -> entry.getValue() != 0)) newRemaining.add(detective.piece());
 					}
 
 					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), mrXNewLocation, detectives, moves, winner);
