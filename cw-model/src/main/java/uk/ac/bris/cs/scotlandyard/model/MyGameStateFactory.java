@@ -57,7 +57,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			Set<Move> moveSet = new HashSet<>();
 
-			System.out.println(remaining);
+			System.out.println("remaining " + remaining);
 			if (remaining.isEmpty()) {
 				moveSet.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
 				moveSet.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
@@ -70,7 +70,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 
 			this.moves = ImmutableSet.copyOf(moveSet);
-			System.out.println(moves);
+			System.out.println("moves " + this.moves);
 		}
 
 
@@ -86,6 +86,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Override public GameState advance(Move move) {
+			System.out.println("advance " + move);
 			if (!moves.contains(move)) throw new IllegalArgumentException("move is breaking the law and illegal");
 
 			return move.accept(new Move.Visitor<GameState>() {
@@ -115,16 +116,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					Player detectiveNewLocation = detective.at(singleMove.destination);
 					Player detectiveUseTicket = detectiveNewLocation.at(singleMove.destination);
 					Player mrXGiveTicket = mrX.give(singleMove.ticket);
+					List<Player> newDetectives = new ArrayList<>(detectives);
+					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
 
 					Set<Piece> remainingSet = remaining.stream().collect(Collectors.toSet());
 					remainingSet.remove(move.commencedBy());
 					ImmutableSet<Piece> newRemaining = ImmutableSet.copyOf(remainingSet);
 
-//					if (remaining.isEmpty()) {
-//
-//					}
-
-					return new MyGameState(setup, newRemaining, log, mrXGiveTicket, detectives, moves, winner);
+					return new MyGameState(setup, newRemaining, log, mrXGiveTicket, newDetectives, moves, winner);
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
