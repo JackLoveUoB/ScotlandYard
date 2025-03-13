@@ -207,11 +207,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 					if (empty2) {
 						for (Transport t1 : setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of())) {
-							for (Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
-								if (t1.requiredTicket().equals(t2.requiredTicket()) && !mrX.hasAtLeast(t1.requiredTicket(), 2)) continue;
+							if (mrX.has(t1.requiredTicket())) {
+								for (Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
+									if (t1.requiredTicket().equals(t2.requiredTicket()) && !mrX.hasAtLeast(t1.requiredTicket(), 2))
+										continue;
 
-								if (mrX.has(t1.requiredTicket()) && mrX.has(t2.requiredTicket())) {
-									doubleMoves.add(new DoubleMove(mrX.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2));
+									if (mrX.has(t2.requiredTicket())) {
+										doubleMoves.add(new DoubleMove(mrX.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2));
+									}
 								}
 							}
 
