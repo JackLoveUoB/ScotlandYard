@@ -14,8 +14,6 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Transport;
 
-import static uk.ac.bris.cs.scotlandyard.model.Piece.Detective.BLUE;
-
 // builds new game state off of factory
 public final class MyGameStateFactory implements Factory<GameState> {
 	//implements game state
@@ -69,20 +67,19 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
-			System.out.println(this.moves);
-
+			// check if detectives lose
 			if ((!remaining.isEmpty() && this.moves.isEmpty()) || detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0))) {
 				this.winner = ImmutableSet.of(mrX.piece());
 				this.moves = ImmutableSet.of();
+			// check if mrX loses
 			} else if (detectiveLocations.contains(mrX.location()) || (remaining.isEmpty() && (this.moves.isEmpty() || log.size() >= setup.moves.size()))) {
 				this.winner = ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
 				this.moves = ImmutableSet.of();
 			} else this.winner = winner;
-
-			System.out.println(this.winner + " " + this.moves);
 		}
 
-		@Override public GameSetup getSetup() {return setup;}
+		@Override public GameSetup getSetup() { return setup; }
+
 		@Override public ImmutableSet<Piece> getPlayers() {
 			Set<Piece> playersSet = new HashSet<>();
 			playersSet.add(mrX.piece());
@@ -131,7 +128,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
-					System.out.println(setup.moves);
 					List<LogEntry> newLog = log.stream().collect(Collectors.toList());
 					if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
 					else newLog.add(LogEntry.hidden(doubleMove.ticket1));
@@ -152,6 +148,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		@Override public ImmutableSet<Move> getAvailableMoves() { return moves; }
+
 		@Override public ImmutableSet<Piece> getWinner() { return winner; }
 
 		@Override public Optional<Integer> getDetectiveLocation(Detective detective) {
