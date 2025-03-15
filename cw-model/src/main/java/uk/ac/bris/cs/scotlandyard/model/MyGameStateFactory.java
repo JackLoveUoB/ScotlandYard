@@ -67,6 +67,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
+			System.out.println(detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0)) + " " + !remaining.isEmpty() + " " + this.moves.isEmpty());
 			if ((!remaining.isEmpty() && this.moves.isEmpty()) || detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0))) {
 				this.winner = ImmutableSet.of(mrX.piece());
 				this.moves = ImmutableSet.of();
@@ -103,8 +104,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return move.accept(new Move.Visitor<GameState>() {
 				@Override public GameState visit(SingleMove singleMove) {
 					if (move.commencedBy().equals(mrX.piece())) {
-						//List<LogEntry> newLog = log.stream().collect(Collectors.toList());
-						List<LogEntry> newLog = new ArrayList<>(log);
+						List<LogEntry> newLog = log.stream().collect(Collectors.toList());
 						if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
 						else newLog.add(LogEntry.hidden(singleMove.ticket));
 
@@ -129,16 +129,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					List<Player> newDetectives = new ArrayList<>(detectives);
 					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
 
-					//Set<Piece> newRemaining = remaining.stream().collect(Collectors.toSet());
-					Set<Piece> newRemaining = new HashSet<>(remaining);
+					Set<Piece> newRemaining = remaining.stream().collect(Collectors.toSet());
 					newRemaining.remove(move.commencedBy());
 
 					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, mrXGiveTicket, newDetectives, moves, winner);
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
-					//List<LogEntry> newLog = log.stream().collect(Collectors.toList());
-					List<LogEntry> newLog = new ArrayList<>(log);
+					List<LogEntry> newLog = log.stream().collect(Collectors.toList());
 					if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
 					else newLog.add(LogEntry.hidden(doubleMove.ticket1));
 					if (setup.moves.get(log.size() + 1)) newLog.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
@@ -173,7 +171,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for (Player detective : detectives) {
 				if (detective.piece().equals(piece)) {
 					return Optional.of(new TicketBoard() {
-						@Override public int getCount(@Nonnull Ticket ticket) {
+						@Override
+						public int getCount(@Nonnull Ticket ticket) {
 							return detective.tickets().get(ticket);
 						}
 					});
@@ -181,7 +180,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 				if (mrX.piece().equals(piece)) {
 					return Optional.of(new Board.TicketBoard() {
-						@Override public int getCount(@Nonnull Ticket ticket) {
+						@Override
+						public int getCount(@Nonnull Ticket ticket) {
 							return mrX.tickets().get(ticket);
 						}
 					});
