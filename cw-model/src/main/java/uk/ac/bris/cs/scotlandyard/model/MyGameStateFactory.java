@@ -67,9 +67,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
-			boolean noDetectiveTickets = detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0));
+			boolean noDetectiveTickets = detectives.stream()
+					.allMatch(detective -> detective.tickets().entrySet().stream()
+							.allMatch(entry -> entry.getValue() == 0));
 
-			System.out.println(log.size() + " " + setup.moves.size() + remaining);
 			if (!remaining.isEmpty() && this.moves.isEmpty() || noDetectiveTickets || (remaining.isEmpty() && log.size() >= setup.moves.size())) {
 				this.winner = ImmutableSet.of(mrX.piece());
 				this.moves = ImmutableSet.of();
@@ -107,7 +108,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return move.accept(new Move.Visitor<GameState>() {
 				@Override public GameState visit(SingleMove singleMove) {
 					if (move.commencedBy().equals(mrX.piece())) {
-						List<LogEntry> newLog = log.stream().collect(Collectors.toList());
+						List<LogEntry> newLog = new ArrayList<>(log);
 						if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(singleMove.ticket, singleMove.destination));
 						else newLog.add(LogEntry.hidden(singleMove.ticket));
 
@@ -132,14 +133,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					List<Player> newDetectives = new ArrayList<>(detectives);
 					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
 
-					Set<Piece> newRemaining = remaining.stream().collect(Collectors.toSet());
+					Set<Piece> newRemaining = new HashSet<>(remaining);
 					newRemaining.remove(move.commencedBy());
 
 					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, mrXGiveTicket, newDetectives, moves, winner);
 				}
 
 				@Override public GameState visit(DoubleMove doubleMove) {
-					List<LogEntry> newLog = log.stream().collect(Collectors.toList());
+					List<LogEntry> newLog = new ArrayList<>(log);
 					if (setup.moves.get(log.size())) newLog.add(LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1));
 					else newLog.add(LogEntry.hidden(doubleMove.ticket1));
 					if (setup.moves.get(log.size() + 1)) newLog.add(LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2));
