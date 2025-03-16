@@ -67,22 +67,25 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
-			System.out.println(detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0)) + " " + !remaining.isEmpty() + " " + this.moves.isEmpty());
-			if ((!remaining.isEmpty() && this.moves.isEmpty()) || detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0))) {
+			boolean noDetectiveTickets = detectives.stream().allMatch(detective -> detective.tickets().entrySet().stream().allMatch(entry -> entry.getValue() == 0));
+
+			System.out.println(log.size() + " " + setup.moves.size() + remaining);
+			if (!remaining.isEmpty() && this.moves.isEmpty() || noDetectiveTickets || (remaining.isEmpty() && log.size() >= setup.moves.size())) {
 				this.winner = ImmutableSet.of(mrX.piece());
 				this.moves = ImmutableSet.of();
-			} else if (detectiveLocations.contains(mrX.location()) || (remaining.isEmpty() && (this.moves.isEmpty() || log.size() >= setup.moves.size()))) {
+			} else if (detectiveLocations.contains(mrX.location()) || (remaining.isEmpty() && this.moves.isEmpty())) {
 				this.winner = ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
 				this.moves = ImmutableSet.of();
-			} else if (remaining.isEmpty() && this.moves.isEmpty()) {
-				if (log.size() >= setup.moves.size()) {
-					this.winner = ImmutableSet.of(mrX.piece());
-				} else {
-					this.winner = ImmutableSet.copyOf(getPlayers().stream()
-							.filter(x -> !x.equals(mrX.piece()))
-							.collect(Collectors.toSet()));
-				}
 			}
+//			else if (remaining.isEmpty() && this.moves.isEmpty()) {
+//				if (log.size() >= setup.moves.size()) {
+//					this.winner = ImmutableSet.of(mrX.piece());
+//				} else {
+//					this.winner = ImmutableSet.copyOf(getPlayers().stream()
+//							.filter(x -> !x.equals(mrX.piece()))
+//							.collect(Collectors.toSet()));
+//				}
+//			}
 			else this.winner = winner;
 		}
 
