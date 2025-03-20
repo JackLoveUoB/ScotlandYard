@@ -1,2 +1,0 @@
-# ScotlandYard
-scotland yard coursework
