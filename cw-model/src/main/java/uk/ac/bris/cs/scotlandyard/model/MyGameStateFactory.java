@@ -64,34 +64,34 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				moveSet.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
 			}
 
-			// give each detective their single move
+			// add moves for each detective in remaining
 			for (Player detective : detectives) {
 				if (remaining.contains(detective.piece())) moveSet.addAll(makeSingleMoves(setup, detectives, detective, detective.location()));
 			}
 
 			this.moves = ImmutableSet.copyOf(moveSet);
 
-			boolean noDetectiveTickets = detectives.stream() // have the detectoves used their tickets
+			boolean noDetectiveTickets = detectives.stream() // check if detectives are all out of tickets
 					.allMatch(detective -> detective.tickets().entrySet().stream()
 							.allMatch(entry -> entry.getValue() == 0));
 
-			//check who win win wins
-			if (!remaining.isEmpty() && this.moves.isEmpty() || noDetectiveTickets || (remaining.isEmpty() && log.size() >= setup.moves.size())) {
+			// check if mrX has completed all moves in setup.moves
+			boolean mrXFinishedMoves = (remaining.isEmpty() && log.size() >= setup.moves.size());
+
+			// check if mrX has been captured by a detective
+			boolean mrXcaptured = detectiveLocations.contains(mrX.location());
+
+			// check if mrX has won, checking if mrX has no available moves or all detectives have no tickets, or mrX has finished all his moves
+			if (!remaining.isEmpty() && this.moves.isEmpty() || noDetectiveTickets || mrXFinishedMoves) {
 				this.winner = ImmutableSet.of(mrX.piece());
-				this.moves = ImmutableSet.of(); //mrx wins because detectives are slow
-			} else if (detectiveLocations.contains(mrX.location()) || (remaining.isEmpty() && this.moves.isEmpty())) {
-				this.winner = ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
-				this.moves = ImmutableSet.of(); //mrx wasn't sneaky enough and lost
+				this.moves = ImmutableSet.of();
 			}
-//			else if (remaining.isEmpty() && this.moves.isEmpty()) {
-//				if (log.size() >= setup.moves.size()) {
-//					this.winner = ImmutableSet.of(mrX.piece());
-//				} else {
-//					this.winner = ImmutableSet.copyOf(getPlayers().stream()
-//							.filter(x -> !x.equals(mrX.piece()))
-//							.collect(Collectors.toSet()));
-//				}
-//			}
+			// check if detectives have won, checking if the detectives have captured mrX, or the detectives have no avaiable moves
+			else if (mrXcaptured || (remaining.isEmpty() && this.moves.isEmpty())) {
+				this.winner = ImmutableSet.copyOf(getPlayers().stream().filter(x -> x != mrX.piece()).collect(Collectors.toSet()));
+				this.moves = ImmutableSet.of();
+			}
+			// no one has won
 			else this.winner = winner;
 		}
 
@@ -124,9 +124,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						Player mrXUseTicket = mrX.use(singleMove.ticket);
 						Player mrXNewLocation = mrXUseTicket.at(singleMove.destination);
 
-						//create new set for remaining pieces that have not moved
+						//create new set of remaining that adds the detectives
 						Set<Piece> newRemaining = new HashSet<>();
 						for (Player detective : detectives) {
+							// only add the detective to newRemaining if it has tickets
 							if (detective.tickets().entrySet().stream().anyMatch(entry -> entry.getValue() != 0)) newRemaining.add(detective.piece());
 						}
 
@@ -141,7 +142,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					Player detectiveUseTicket = detectiveNewLocation.use(singleMove.ticket);
 					//mrx steals the ticket
 					Player mrXGiveTicket = mrX.give(singleMove.ticket);
-					//detective has moved so make new list showing they have moved
 					List<Player> newDetectives = new ArrayList<>(detectives);
 					newDetectives.set(detectives.indexOf(detective), detectiveUseTicket);
 
@@ -152,7 +152,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, mrXGiveTicket, newDetectives, moves, winner);
 				}
 
-				//exclusive to mrx because he's not fair
 				@Override public GameState visit(DoubleMove doubleMove) {
 					//adds two entries to the log for both moves
 					List<LogEntry> newLog = new ArrayList<>(log);
@@ -165,7 +164,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					Player mrXUseTickets = mrX.use(List.of(doubleMove.ticket1, doubleMove.ticket2, Ticket.DOUBLE));
 					Player mrXNewLocation = mrXUseTickets.at(doubleMove.destination2);
 
-					//new remaining moves made
+					//new remaining moves made, same as visit(SingleMove singleMove)
 					Set<Piece> newRemaining = new HashSet<>();
 					for (Player detective : detectives) {
 						if (detective.tickets().entrySet().stream().anyMatch(entry -> entry.getValue() != 0)) newRemaining.add(detective.piece());
@@ -191,6 +190,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		//should show the ticket count for a piece
 		@Override public Optional<Board.TicketBoard> getPlayerTickets(Piece piece) {
 			for (Player detective : detectives) {
+				// check if piece is detective
 				if (detective.piece().equals(piece)) {
 					return Optional.of(new TicketBoard() {
 						@Override
@@ -200,6 +200,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					});
 				}
 
+				// check if piece is mrX
 				if (mrX.piece().equals(piece)) {
 					return Optional.of(new Board.TicketBoard() {
 						@Override
@@ -228,19 +229,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		return new MyGameState(setup, remaining, log, mrX, detectives, moves, winner);
 	}
 
-	//generate all valid moves from a node in le graph
+	//generate all valid moves from a node in the graph
 	private static Set<SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source) {
 		Set<SingleMove> singleMoves = new HashSet<>();
 
-		//iterate over adjacents
-		//PLEASE fix it from exploring the entire graph
+		// check each adjacent node
 		for (int destination : setup.graph.adjacentNodes(source)) {
 			boolean empty = true;
 
 			for (Player detective : detectives) { //stop thieving of peoples spaces
                 if (detective.location() == destination) {
                     empty = false;
-                    break; //i hate break
+                    break; // we should find a better way of implementing this without break later
                 }
 			}
 
